@@ -171,6 +171,18 @@ class Chip {
 					case 0x1e:
 						this.addToIndex(instruction);
 						break;
+					case 0x29:
+						this.fontCharacter(instruction);
+						break;
+					case 0x33:
+						this.binaryCodedDecimalConversion(instruction);
+						break;
+					case 0x55:
+						this.storeRegisters(instruction);
+						break;
+					case 0x65:
+						this.loadRegisters(instruction);
+						break;
 				}
 				break;
 		}
@@ -188,6 +200,46 @@ class Chip {
 	private jumpToSubroutine(instruction: number) {
 		this.stack.push(this.programCounterRegister);
 		this.jump(instruction);
+	}
+
+	private storeRegisters(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+
+		const x = this.generalRegisters[xIndex];
+
+		for (let i = 0; i <= x; i++) {
+			this.RAM[this.indexRegister + i] = this.generalRegisters[i];
+		}
+	}
+
+	private loadRegisters(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+
+		const x = this.generalRegisters[xIndex];
+
+		for (let i = 0; i <= x; i++) {
+			this.generalRegisters[i] = this.RAM[this.indexRegister + i];
+		}
+	}
+
+	private binaryCodedDecimalConversion(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const number = this.generalRegisters[xIndex];
+
+		const hundreds = Math.floor(number / 100);
+		const tens = Math.floor(number / 10) % 10;
+		const ones = number % 10;
+
+		this.RAM[this.indexRegister] = hundreds;
+		this.RAM[this.indexRegister + 1] = tens;
+		this.RAM[this.indexRegister + 2] = ones;
+	}
+
+	private fontCharacter(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const ramIndex = 0x050 + this.generalRegisters[xIndex & 0x0f] * 5;
+
+		this.indexRegister = ramIndex;
 	}
 
 	private saveTimerToRegister(instruction: number) {
