@@ -150,7 +150,7 @@ class Chip {
 						this.skipIfPressed(instruction);
 						break;
 					case 0xa1:
-						this.skipIfPressed(instruction);
+						this.skipIfNotPressed(instruction);
 						break;
 				}
 				break;
