@@ -1,6 +1,7 @@
 import ChipAudio from "./chipAudio.ts";
 import Clock from "./clock.ts";
 import { FONT_DATA, toHex } from "./helpers.ts";
+import Keyboard from "./keyboard.ts";
 import Rendering from "./rendering.ts";
 
 class Chip {
@@ -18,6 +19,7 @@ class Chip {
 	private rendering: Rendering;
 	private clock: Clock;
 	private audio: ChipAudio;
+	private keyboard: Keyboard;
 
 	constructor(ROM: Uint8Array, rendering: Rendering) {
 		// load font data
@@ -33,6 +35,7 @@ class Chip {
 		this.rendering = rendering;
 		this.clock = new Clock(this.update);
 		this.audio = new ChipAudio();
+		this.keyboard = new Keyboard();
 
 		this.renderDebugInfo();
 	}
@@ -71,37 +74,98 @@ class Chip {
 
 		switch (instruction & 0xf000) {
 			case 0x0000:
-				if (instruction === 0x00e0) {
-					console.log("clearScreen");
-					this.clearScreen();
-				} else if (instruction === 0x00ee) {
-					console.log("returnFromSubroutine");
-					this.returnFromSubroutine();
-				}
+				if (instruction === 0x00e0) this.clearScreen();
+				else if (instruction === 0x00ee) this.returnFromSubroutine();
 				break;
 			case 0x1000:
-				console.log("jump");
 				this.jump(instruction);
 				break;
 			case 0x2000:
-				console.log("jumpToSubroutine");
 				this.jumpToSubroutine(instruction);
 				break;
+			case 0x3000:
+				this.skipIfEqual(instruction);
+				break;
+			case 0x4000:
+				this.skipIfNotEqual(instruction);
+				break;
+			case 0x5000:
+				this.skipIfValuesEqual(instruction);
+				break;
 			case 0x6000:
-				console.log("setRegister");
 				this.setRegister(instruction);
 				break;
 			case 0x7000:
-				console.log("addToRegister");
 				this.addToRegister(instruction);
 				break;
+			case 0x8000:
+				switch (instruction & 0x000f) {
+					case 0x00:
+						this.setXtoY(instruction);
+						break;
+					case 0x01:
+						this.or(instruction);
+						break;
+					case 0x02:
+						this.and(instruction);
+						break;
+					case 0x03:
+						this.xor(instruction);
+						break;
+					case 0x04:
+						this.add(instruction);
+						break;
+					case 0x05:
+						this.subtractXY(instruction);
+						break;
+					case 0x06:
+						this.shiftRight(instruction);
+						break;
+					case 0x07:
+						this.subtractYX(instruction);
+						break;
+					case 0x0e:
+						this.shiftLeft(instruction);
+						break;
+				}
+				break;
+			case 0x9000:
+				this.skipIfValuesEqual(instruction);
+				break;
 			case 0xa000:
-				console.log("setIndexRegister");
 				this.setIndexRegister(instruction);
 				break;
+			case 0xb000:
+				this.jumpWithOffset(instruction);
+				break;
+			case 0xc000:
+				this.random(instruction);
+				break;
 			case 0xd000:
-				console.log("display");
 				this.display(instruction);
+				break;
+			case 0xe000:
+				switch (instruction & 0xff) {
+					case 0x9e:
+						this.skipIfPressed(instruction);
+						break;
+					case 0xa1:
+						this.skipIfPressed(instruction);
+						break;
+				}
+				break;
+			case 0xf000:
+				switch (instruction & 0xff) {
+					case 0x07:
+						this.saveTimerToRegister(instruction);
+						break;
+					case 0x15:
+						this.setDelayTimer(instruction);
+						break;
+					case 0x18:
+						this.setSoundTimer(instruction);
+						break;
+				}
 				break;
 		}
 	}
@@ -118,6 +182,68 @@ class Chip {
 	private jumpToSubroutine(instruction: number) {
 		this.stack.push(this.programCounterRegister);
 		this.jump(instruction);
+	}
+
+	private saveTimerToRegister(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+
+		this.generalRegisters[xIndex] = this.delayRegister;
+	}
+
+	private setDelayTimer(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+
+		this.delayRegister = this.generalRegisters[xIndex];
+	}
+
+	private setSoundTimer(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+
+		this.soundRegister = this.generalRegisters[xIndex];
+	}
+
+	private skipIfPressed(instruction: number) {
+		const key = instruction & 0xff;
+		if (this.keyboard.currentPressedKey === key)
+			this.programCounterRegister += 2;
+	}
+
+	private skipIfNotPressed(instruction: number) {
+		const key = instruction & 0xff;
+		if (this.keyboard.currentPressedKey !== key)
+			this.programCounterRegister += 2;
+	}
+
+	private random(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+
+		const rand = Math.floor(Math.random() * 256);
+
+		this.generalRegisters[xIndex] = instruction & (0x00ff + rand);
+	}
+
+	private skipIfEqual(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const value = instruction & 0x00ff;
+		if (this.RAM[xIndex] === value) this.programCounterRegister += 2;
+	}
+
+	private skipIfNotEqual(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const value = instruction & 0x00ff;
+		if (this.RAM[xIndex] !== value) this.programCounterRegister += 2;
+	}
+
+	private skipIfValuesEqual(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+		if (this.RAM[xIndex] === this.RAM[yIndex]) this.programCounterRegister += 2;
+	}
+
+	private skipIfValuesNotEqual(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+		if (this.RAM[xIndex] !== this.RAM[yIndex]) this.programCounterRegister += 2;
 	}
 
 	private returnFromSubroutine() {
@@ -140,6 +266,98 @@ class Chip {
 
 	private setIndexRegister(instruction: number) {
 		this.indexRegister = instruction & 0x0fff;
+	}
+
+	private setXtoY(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		this.generalRegisters[xIndex] = this.generalRegisters[yIndex];
+	}
+
+	private or(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		this.generalRegisters[xIndex] =
+			this.generalRegisters[xIndex] | this.generalRegisters[yIndex];
+	}
+
+	private and(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		this.generalRegisters[xIndex] =
+			this.generalRegisters[xIndex] & this.generalRegisters[yIndex];
+	}
+
+	private xor(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		this.generalRegisters[xIndex] =
+			this.generalRegisters[xIndex] ^ this.generalRegisters[yIndex];
+	}
+
+	private add(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		const result =
+			this.generalRegisters[xIndex] + this.generalRegisters[yIndex];
+		if (result > 255) this.generalRegisters[0xf] = 0x1;
+
+		this.generalRegisters[xIndex] = result & 0xff;
+	}
+
+	private subtractXY(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		const result =
+			this.generalRegisters[xIndex] - this.generalRegisters[yIndex];
+		if (result < 0) this.generalRegisters[0xf] = 0x0;
+		else this.generalRegisters[0xf] = 0x1;
+
+		this.generalRegisters[xIndex] = result & 0xff;
+	}
+
+	private subtractYX(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		const result =
+			this.generalRegisters[yIndex] - this.generalRegisters[xIndex];
+		if (result < 0) this.generalRegisters[0xf] = 0x0;
+		else this.generalRegisters[0xf] = 0x1;
+
+		this.generalRegisters[xIndex] = result & 0xff;
+	}
+
+	private shiftRight(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		this.generalRegisters[xIndex] = this.generalRegisters[yIndex];
+
+		this.generalRegisters[0xf] = this.generalRegisters[xIndex] & 0x01;
+		this.generalRegisters[xIndex] = this.generalRegisters[xIndex] >> 1;
+	}
+
+	private shiftLeft(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const yIndex = (instruction & 0x00f0) >> 4;
+
+		this.generalRegisters[xIndex] = this.generalRegisters[yIndex];
+
+		this.generalRegisters[0xf] = this.generalRegisters[xIndex] & 0x80;
+		this.generalRegisters[xIndex] = this.generalRegisters[xIndex] << 1;
+	}
+
+	private jumpWithOffset(instruction: number) {
+		const offset = this.generalRegisters[0x00];
+
+		this.programCounterRegister = (offset + instruction) & 0x0fff;
 	}
 
 	private display(instruction: number) {

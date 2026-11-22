@@ -10,7 +10,8 @@ const STEPS_PER_FRAME = Math.ceil(700 / 60);
 let running = false;
 let frameId: number | null = null;
 
-const chip = await Chip.setup("assets/ibm-logo.ch8");
+// const chip = await Chip.setup("assets/ibm-logo.ch8");
+const chip = await Chip.setup("assets/3-corax+.ch8");
 console.log("set up");
 
 function loop() {
