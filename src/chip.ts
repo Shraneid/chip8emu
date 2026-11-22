@@ -6,7 +6,7 @@ import Rendering from "./rendering.ts";
 class Chip {
 	debugEl = document.getElementById("debug")!;
 
-	private RAM = new Uint16Array(4096);
+	private RAM = new Uint8Array(4096);
 	private stack: number[] = [];
 	private programCounterRegister = 0x200;
 	private indexRegister = 0;
@@ -41,17 +41,12 @@ class Chip {
 		const rendering = new Rendering();
 		await rendering.setup();
 
-		const bytes = new Uint8Array(
-			await (await fetch(ROM_Filename)).arrayBuffer(),
-		);
+		const res = await fetch(ROM_Filename);
+		console.log(res.status, res.headers.get("content-type"));
+		const bytes = new Uint8Array(await res.arrayBuffer());
+		console.log(new TextDecoder().decode(bytes.slice(0, 20)));
 
 		return new Chip(bytes, rendering);
-	}
-
-	public run() {
-		while (true) {
-			this.step();
-		}
 	}
 
 	public step() {
@@ -76,25 +71,36 @@ class Chip {
 
 		switch (instruction & 0xf000) {
 			case 0x0000:
-				if (instruction === 0x00e0) this.clearScreen();
-				else if (instruction === 0x00ee) this.returnFromSubroutine();
+				if (instruction === 0x00e0) {
+					console.log("clearScreen");
+					this.clearScreen();
+				} else if (instruction === 0x00ee) {
+					console.log("returnFromSubroutine");
+					this.returnFromSubroutine();
+				}
 				break;
 			case 0x1000:
+				console.log("jump");
 				this.jump(instruction);
 				break;
 			case 0x2000:
+				console.log("jumpToSubroutine");
 				this.jumpToSubroutine(instruction);
 				break;
 			case 0x6000:
+				console.log("setRegister");
 				this.setRegister(instruction);
 				break;
 			case 0x7000:
+				console.log("addToRegister");
 				this.addToRegister(instruction);
 				break;
 			case 0xa000:
+				console.log("setIndexRegister");
 				this.setIndexRegister(instruction);
 				break;
 			case 0xd000:
+				console.log("display");
 				this.display(instruction);
 				break;
 		}
@@ -137,13 +143,35 @@ class Chip {
 	}
 
 	private display(instruction: number) {
-		// DXYN
+		const spriteRAMIndex = this.indexRegister;
+
 		const xIndex = (instruction & 0x0f00) >> 8;
 		const yIndex = (instruction & 0x00f0) >> 4;
+
 		const n = instruction & 0x000f;
 
-		const x = this.generalRegisters[xIndex];
-		const y = this.generalRegisters[yIndex];
+		const x = this.generalRegisters[xIndex] % 64;
+		const y = this.generalRegisters[yIndex] % 32;
+
+		this.generalRegisters[0xf] = 0;
+
+		for (let j = 0; j < n; j++) {
+			if (y + j >= 32) break; // outside of the display
+
+			const sprite = this.RAM[spriteRAMIndex + j] & 0xff;
+			for (let i = 0; i < 8; i++) {
+				if (x + i >= 64) break; // outside of the display
+
+				const displayIndex = x + i + (y + j) * 64;
+				const spriteBit = (sprite >> (7 - i)) & 0x01;
+
+				if (this.displayBuffer[displayIndex] === 1 && spriteBit === 1) {
+					this.generalRegisters[0xf] = 1;
+				}
+				// XOR (^)
+				this.displayBuffer[displayIndex] ^= spriteBit;
+			}
+		}
 	}
 
 	// EMULATOR FUNCTIONS
@@ -178,7 +206,7 @@ class Chip {
 		}
 
 		this.debugEl.textContent = [
-			`Program Counter: ${toHex(this.programCounterRegister, 3)}   	Opcode: ${toHex(this.RAM[this.programCounterRegister], 4)}`,
+			`Program Counter: ${toHex(this.programCounterRegister, 3)}   	Opcode: ${toHex((this.RAM[this.programCounterRegister] << 8) | this.RAM[this.programCounterRegister + 1], 4)}`,
 			`Index:  ${toHex(this.indexRegister, 3)}   		Stack Pointer: ${toHex(this.stack.length > 0 ? this.stack[this.stack.length - 1] : 0)}`,
 			`Delay: ${toHex(this.delayRegister)}   		Sound: ${toHex(this.soundRegister)}`,
 			"",
