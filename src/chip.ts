@@ -297,7 +297,7 @@ class Chip {
 
 		const rand = Math.floor(Math.random() * 256);
 
-		this.generalRegisters[xIndex] = instruction & (0x00ff + rand);
+		this.generalRegisters[xIndex] = instruction & 0x00ff & rand;
 	}
 
 	private skipIfEqual(instruction: number) {
