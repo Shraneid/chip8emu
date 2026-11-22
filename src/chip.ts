@@ -277,13 +277,17 @@ class Chip {
 	}
 
 	private skipIfPressed(instruction: number) {
-		const key = instruction & 0xff;
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const key = this.generalRegisters[xIndex];
+
 		if (this.keyboard.currentPressedKey === key)
 			this.programCounterRegister += 2;
 	}
 
 	private skipIfNotPressed(instruction: number) {
-		const key = instruction & 0xff;
+		const xIndex = (instruction & 0x0f00) >> 8;
+		const key = this.generalRegisters[xIndex];
+
 		if (this.keyboard.currentPressedKey !== key)
 			this.programCounterRegister += 2;
 	}
