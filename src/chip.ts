@@ -303,25 +303,29 @@ class Chip {
 	private skipIfEqual(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 		const value = instruction & 0x00ff;
-		if (this.RAM[xIndex] === value) this.programCounterRegister += 2;
+		if (this.generalRegisters[xIndex] === value)
+			this.programCounterRegister += 2;
 	}
 
 	private skipIfNotEqual(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 		const value = instruction & 0x00ff;
-		if (this.RAM[xIndex] !== value) this.programCounterRegister += 2;
+		if (this.generalRegisters[xIndex] !== value)
+			this.programCounterRegister += 2;
 	}
 
 	private skipIfValuesEqual(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 		const yIndex = (instruction & 0x00f0) >> 4;
-		if (this.RAM[xIndex] === this.RAM[yIndex]) this.programCounterRegister += 2;
+		if (this.generalRegisters[xIndex] === this.generalRegisters[yIndex])
+			this.programCounterRegister += 2;
 	}
 
 	private skipIfValuesNotEqual(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 		const yIndex = (instruction & 0x00f0) >> 4;
-		if (this.RAM[xIndex] !== this.RAM[yIndex]) this.programCounterRegister += 2;
+		if (this.generalRegisters[xIndex] !== this.generalRegisters[yIndex])
+			this.programCounterRegister += 2;
 	}
 
 	private returnFromSubroutine() {
