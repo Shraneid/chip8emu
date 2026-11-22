@@ -11,3 +11,7 @@ body {
 	width: 100vw;
 	aspect-ratio: 2 / 1;
 }
+
+#debug {
+	font-size: 24px;
+}
