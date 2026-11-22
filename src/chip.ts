@@ -16,6 +16,8 @@ class Chip {
 	private generalRegisters = new Uint8Array(16);
 	private displayBuffer = new Uint8Array(64 * 32);
 
+	private keyPressedFlag = false;
+
 	private rendering: Rendering;
 	private clock: Clock;
 	private audio: ChipAudio;
@@ -267,13 +269,21 @@ class Chip {
 	}
 
 	private getKey(instruction: number) {
-		if (this.keyboard.currentPressedKey === null) {
+		if (
+			this.keyPressedFlag === false &&
+			this.keyboard.currentPressedKey === null
+		) {
 			this.programCounterRegister -= 2;
 			return;
 		}
 
-		const xIndex = (instruction & 0x0f00) >> 8;
-		this.generalRegisters[xIndex] = this.keyboard.currentPressedKey!;
+		this.keyPressedFlag = true;
+
+		if (this.keyboard.currentPressedKey === null) {
+			const xIndex = (instruction & 0x0f00) >> 8;
+			this.generalRegisters[xIndex] = this.keyboard.latestKeyPressed!;
+			this.keyPressedFlag = false;
+		}
 	}
 
 	private skipIfPressed(instruction: number) {

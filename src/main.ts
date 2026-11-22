@@ -11,7 +11,11 @@ let running = false;
 let frameId: number | null = null;
 
 // const chip = await Chip.setup("assets/ibm-logo.ch8");
-const chip = await Chip.setup("assets/3-corax+.ch8");
+// const chip = await Chip.setup("assets/3-corax+.ch8");
+// const chip = await Chip.setup("assets/4-flags.ch8");
+// const chip = await Chip.setup("assets/5-quirks.ch8");
+// const chip = await Chip.setup("assets/6-keypad.ch8");
+const chip = await Chip.setup("assets/7-beep.ch8");
 console.log("set up");
 
 function loop() {

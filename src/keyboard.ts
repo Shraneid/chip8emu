@@ -1,5 +1,6 @@
 class Keyboard {
 	public currentPressedKey: number | null = null;
+	public latestKeyPressed: number | null = null;
 
 	constructor() {
 		document.addEventListener("keydown", (event) => {
@@ -7,6 +8,7 @@ class Keyboard {
 		});
 		document.addEventListener("keyup", (event) => {
 			this.currentPressedKey = null;
+			this.latestKeyPressed = this.keyMap[event.code];
 		});
 	}
 
