@@ -159,11 +159,17 @@ class Chip {
 					case 0x07:
 						this.saveTimerToRegister(instruction);
 						break;
+					case 0x0a:
+						this.getKey(instruction);
+						break;
 					case 0x15:
 						this.setDelayTimer(instruction);
 						break;
 					case 0x18:
 						this.setSoundTimer(instruction);
+						break;
+					case 0x1e:
+						this.addToIndex(instruction);
 						break;
 				}
 				break;
@@ -200,6 +206,26 @@ class Chip {
 		const xIndex = (instruction & 0x0f00) >> 8;
 
 		this.soundRegister = this.generalRegisters[xIndex];
+	}
+
+	private addToIndex(instruction: number) {
+		const xIndex = (instruction & 0x0f00) >> 8;
+
+		const result = this.indexRegister + this.generalRegisters[xIndex];
+
+		if (((result >> 3) & 0x1) === 0x1) this.generalRegisters[0xf] = 0x1; // overflow flag
+
+		this.indexRegister = result;
+	}
+
+	private getKey(instruction: number) {
+		if (this.keyboard.currentPressedKey === null) {
+			this.programCounterRegister -= 2;
+			return;
+		}
+
+		const xIndex = (instruction & 0x0f00) >> 8;
+		this.generalRegisters[xIndex] = this.keyboard.currentPressedKey!;
 	}
 
 	private skipIfPressed(instruction: number) {
