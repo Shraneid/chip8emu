@@ -388,6 +388,7 @@ class Chip {
 		const result =
 			this.generalRegisters[xIndex] + this.generalRegisters[yIndex];
 		if (result > 255) this.generalRegisters[0xf] = 0x1;
+		else this.generalRegisters[0xf] = 0x0;
 
 		this.generalRegisters[xIndex] = result & 0xff;
 	}
