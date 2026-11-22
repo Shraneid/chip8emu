@@ -130,7 +130,7 @@ class Chip {
 				}
 				break;
 			case 0x9000:
-				this.skipIfValuesEqual(instruction);
+				this.skipIfValuesNotEqual(instruction);
 				break;
 			case 0xa000:
 				this.setIndexRegister(instruction);
