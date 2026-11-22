@@ -387,10 +387,11 @@ class Chip {
 
 		const result =
 			this.generalRegisters[xIndex] + this.generalRegisters[yIndex];
-		if (result > 255) this.generalRegisters[0xf] = 0x1;
-		else this.generalRegisters[0xf] = 0x0;
 
 		this.generalRegisters[xIndex] = result & 0xff;
+
+		if (result > 255) this.generalRegisters[0xf] = 0x1;
+		else this.generalRegisters[0xf] = 0x0;
 	}
 
 	private subtractXY(instruction: number) {
@@ -399,10 +400,11 @@ class Chip {
 
 		const result =
 			this.generalRegisters[xIndex] - this.generalRegisters[yIndex];
-		if (result < 0) this.generalRegisters[0xf] = 0x0;
-		else this.generalRegisters[0xf] = 0x1;
 
 		this.generalRegisters[xIndex] = result & 0xff;
+
+		if (result < 0) this.generalRegisters[0xf] = 0x0;
+		else this.generalRegisters[0xf] = 0x1;
 	}
 
 	private subtractYX(instruction: number) {
@@ -411,30 +413,35 @@ class Chip {
 
 		const result =
 			this.generalRegisters[yIndex] - this.generalRegisters[xIndex];
-		if (result < 0) this.generalRegisters[0xf] = 0x0;
-		else this.generalRegisters[0xf] = 0x1;
 
 		this.generalRegisters[xIndex] = result & 0xff;
+
+		if (result < 0) this.generalRegisters[0xf] = 0x0;
+		else this.generalRegisters[0xf] = 0x1;
 	}
 
 	private shiftRight(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 		const yIndex = (instruction & 0x00f0) >> 4;
 
-		this.generalRegisters[xIndex] = this.generalRegisters[yIndex];
+		// this.generalRegisters[xIndex] = this.generalRegisters[yIndex];
 
-		this.generalRegisters[0xf] = this.generalRegisters[xIndex] & 0x01;
+		const flag = this.generalRegisters[xIndex] & 0x01;
+
 		this.generalRegisters[xIndex] = this.generalRegisters[xIndex] >> 1;
+		this.generalRegisters[0xf] = flag;
 	}
 
 	private shiftLeft(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 		const yIndex = (instruction & 0x00f0) >> 4;
 
-		this.generalRegisters[xIndex] = this.generalRegisters[yIndex];
+		// this.generalRegisters[xIndex] = this.generalRegisters[yIndex];
 
-		this.generalRegisters[0xf] = this.generalRegisters[xIndex] & 0x80;
+		const flag = this.generalRegisters[xIndex] & 0x80;
+
 		this.generalRegisters[xIndex] = this.generalRegisters[xIndex] << 1;
+		this.generalRegisters[0xf] = flag;
 	}
 
 	private jumpWithOffset(instruction: number) {
