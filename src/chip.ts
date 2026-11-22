@@ -205,9 +205,7 @@ class Chip {
 	private storeRegisters(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 
-		const x = this.generalRegisters[xIndex];
-
-		for (let i = 0; i <= x; i++) {
+		for (let i = 0; i <= xIndex; i++) {
 			this.RAM[this.indexRegister + i] = this.generalRegisters[i];
 		}
 	}
@@ -215,9 +213,7 @@ class Chip {
 	private loadRegisters(instruction: number) {
 		const xIndex = (instruction & 0x0f00) >> 8;
 
-		const x = this.generalRegisters[xIndex];
-
-		for (let i = 0; i <= x; i++) {
+		for (let i = 0; i <= xIndex; i++) {
 			this.generalRegisters[i] = this.RAM[this.indexRegister + i];
 		}
 	}
